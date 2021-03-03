@@ -1,6 +1,6 @@
 {
   "name": "prolog-program-mithril",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shows Prolog's program.",
   "main": "dist/index.js",
   "files": [

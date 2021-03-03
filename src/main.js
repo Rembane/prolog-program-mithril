@@ -13,6 +13,7 @@ m.mount = mount;
 let defaultState = {
   showVerbose: false,
   onlyShowPepp: false,
+  ordering: "lexical",
   showType: 0,
   filterByDay: -1, // Not active by default.
 };
@@ -27,6 +28,41 @@ try {
 
 var Program = {};
 var EventTypes = [];
+
+var orderProgram = function () {
+  var cmpHelper = function (propFun) {
+    return function (a, b) {
+      var p1 = propFun(a);
+      var p2 = propFun(b);
+      if (p1 < p2) {
+        return -1;
+      } else if (p1 > p2) {
+        return 1;
+      } else {
+        return 0;
+      }
+    };
+  };
+  var cmp =
+    state.ordering == "lexical"
+      ? cmpHelper(function (p) {
+          return p.name;
+        })
+      : cmpHelper(function (p) {
+          return p.schevents
+            .map(function (s) {
+              return s.start.getTime();
+            })
+            .reduce(function (acc, v) {
+              return Math.min(acc, v);
+            }, 9007199254740991);
+        });
+  for (var k in Program) {
+    if (Program.hasOwnProperty(k)) {
+      Program[k].sort(cmp);
+    }
+  }
+};
 
 var Main = {
   view: function () {
@@ -45,6 +81,14 @@ var Main = {
         e.preventDefault();
         state.onlyShowPepp = isOnlyPepp;
         save();
+      };
+    }
+    function orderFun(ordering) {
+      return function (e) {
+        e.preventDefault();
+        state.ordering = ordering;
+        save();
+        orderProgram(state);
       };
     }
     function typeFun(typeId) {
@@ -132,6 +176,24 @@ var Main = {
                 })
               )
             : null,
+          m(
+            "ul.button-list",
+            [
+              { label: "Bokstavsordning", prop: "lexical" },
+              { label: "Tidsordning", prop: "time" },
+            ].map(function (x) {
+              return m("li", [
+                m(
+                  "button",
+                  {
+                    onclick: orderFun(x.prop),
+                    class: state.ordering == x.prop ? "active glow" : null,
+                  },
+                  x.label
+                ),
+              ]);
+            })
+          ),
         ]),
         m(
           "ul.button-list",
@@ -287,6 +349,9 @@ m.request({
           location: s.location,
         };
       });
+      p.schevents.sort(function (a, b) {
+        return a.start.getTime() - b.start.getTime();
+      });
       return p;
     });
   },
@@ -299,6 +364,7 @@ m.request({
     p[v.type].push(v);
     return p;
   }, {});
+  orderProgram();
 });
 m.request({
   method: "GET",
