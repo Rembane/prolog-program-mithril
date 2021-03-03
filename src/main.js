@@ -14,7 +14,7 @@ let defaultState = {
   showVerbose: false,
   onlyShowPepp: false,
   showType: 0,
-  filterByDay: -1 // Not active by default.
+  filterByDay: -1, // Not active by default.
 };
 
 let state = defaultState;
@@ -29,61 +29,61 @@ var Program = {};
 var EventTypes = [];
 
 var Main = {
-  view: function() {
+  view: function () {
     function save() {
       window.localStorage.setItem("prolog-program", JSON.stringify(state));
     }
     function verboseFun(isVerbose) {
-      return function(e) {
+      return function (e) {
         e.preventDefault();
         state.showVerbose = isVerbose;
         save();
       };
     }
     function peppFilterFun(isOnlyPepp) {
-      return function(e) {
+      return function (e) {
         e.preventDefault();
         state.onlyShowPepp = isOnlyPepp;
         save();
       };
     }
     function typeFun(typeId) {
-      return function(e) {
+      return function (e) {
         e.preventDefault();
         state.showType = typeId;
         save();
       };
     }
     function dayFun(dayId) {
-      return function(e) {
+      return function (e) {
         e.preventDefault();
         state.filterByDay = dayId;
         save();
       };
     }
     function peppMe(programItem) {
-      return function(e) {
+      return function (e) {
         e.preventDefault();
         m.request(
           handleCSRFProtection({
             method: programItem.pepp ? "DELETE" : "POST",
             url: document.config.peppUrl,
-            body: programItem.pk
+            body: programItem.pk,
           })
-        ).then(r => {
+        ).then((r) => {
           programItem.pepp = r.pepp;
         });
       };
     }
     function renderTheProgram() {
-      var et = EventTypes.find(function(e) {
+      var et = EventTypes.find(function (e) {
         return e.pk == state.showType;
       });
       return et && et != undefined
         ? renderProgramItems(et)
         : [].concat.apply(
             [],
-            EventTypes.map(function(e) {
+            EventTypes.map(function (e) {
               return renderProgramItems(e);
             })
           );
@@ -97,17 +97,17 @@ var Main = {
             "ul.button-list",
             [
               { label: "Lista", prop: false },
-              { label: "Beskrivningar", prop: true }
-            ].map(function(x) {
+              { label: "Beskrivningar", prop: true },
+            ].map(function (x) {
               return m("li", [
                 m(
                   "button",
                   {
                     onclick: verboseFun(x.prop),
-                    class: state.showVerbose == x.prop ? "active glow" : null
+                    class: state.showVerbose == x.prop ? "active glow" : null,
                   },
                   x.label
-                )
+                ),
               ]);
             })
           ),
@@ -116,22 +116,22 @@ var Main = {
                 "ul.button-list",
                 [
                   { label: "Allt", prop: false },
-                  { label: "Bara pepp", prop: true }
-                ].map(function(x) {
+                  { label: "Bara pepp", prop: true },
+                ].map(function (x) {
                   return m("li", [
                     m(
                       "button",
                       {
                         onclick: peppFilterFun(x.prop),
                         class:
-                          state.onlyShowPepp == x.prop ? "active glow" : null
+                          state.onlyShowPepp == x.prop ? "active glow" : null,
                       },
                       x.label
-                    )
+                    ),
                   ]);
                 })
               )
-            : null
+            : null,
         ]),
         m(
           "ul.button-list",
@@ -141,22 +141,22 @@ var Main = {
                 "button",
                 {
                   onclick: typeFun(0),
-                  class: state.showType == 0 ? "active glow" : null
+                  class: state.showType == 0 ? "active glow" : null,
                 },
                 "Alla"
-              )
-            ])
+              ),
+            ]),
           ].concat(
-            EventTypes.map(function(et) {
+            EventTypes.map(function (et) {
               return m("li", [
                 m(
                   "button." + et.slug,
                   {
                     onclick: typeFun(et.pk),
-                    class: state.showType == et.pk ? "active glow" : null
+                    class: state.showType == et.pk ? "active glow" : null,
                   },
                   et.name
-                )
+                ),
               ]);
             })
           )
@@ -168,20 +168,20 @@ var Main = {
             { label: "Alla dagar", idx: -1 },
             { label: "Fredag", idx: 5 },
             { label: "Lördag", idx: 6 },
-            { label: "Söndag", idx: 0 }
-          ].map(function(day) {
+            { label: "Söndag", idx: 0 },
+          ].map(function (day) {
             return m("li", [
               m(
                 "button",
                 {
                   onclick: dayFun(day.idx),
-                  class: state.filterByDay == day.idx ? "active glow" : null
+                  class: state.filterByDay == day.idx ? "active glow" : null,
                 },
                 day.label
-              )
+              ),
             ]);
           })
-        )
+        ),
       ].concat(renderTheProgram())
     );
     function renderProgramItems(eventType) {
@@ -192,7 +192,7 @@ var Main = {
         "onsdag",
         "torsdag",
         "fredag",
-        "lördag"
+        "lördag",
       ];
       function zeroPadInt(n) {
         return ("0" + n).slice(-2);
@@ -201,11 +201,11 @@ var Main = {
         return zeroPadInt(d.getHours()) + ":" + zeroPadInt(d.getMinutes());
       }
       var programItems = (Program[eventType.pk] || [])
-        .filter(function(pi) {
+        .filter(function (pi) {
           return (
             (state.filterByDay != -1
               ? pi.schevents
-                  .map(function(s) {
+                  .map(function (s) {
                     return s.start.getDay();
                   })
                   .indexOf(state.filterByDay) != -1
@@ -213,12 +213,12 @@ var Main = {
             (document.config.loggedIn && state.onlyShowPepp ? pi.pepp : true)
           );
         })
-        .map(function(pi) {
+        .map(function (pi) {
           return m(
             "li",
             [
               m("a.event-link", { href: pi.url }, pi.name),
-              pi.pepp && !state.onlyShowPepp ? " ★" : null
+              pi.pepp && !state.onlyShowPepp ? " ★" : null,
             ]
               .concat(
                 state.showVerbose
@@ -226,7 +226,7 @@ var Main = {
                       m("p.arr", pi.organizers),
                       m("p.besk", pi.description),
                       m("p.vad", [m("span.hjarta", "♥"), pi.whatsinitforme]),
-                      m("p.taggar", pi.tags.join(", "))
+                      m("p.taggar", pi.tags.join(", ")),
                     ]
                   : []
               )
@@ -235,7 +235,7 @@ var Main = {
                   ? [
                       m(
                         "ul",
-                        pi.schevents.map(function(s) {
+                        pi.schevents.map(function (s) {
                           return m("li", [
                             dayNames[s.start.getDay()].substring(0, 3) +
                               " " +
@@ -243,10 +243,10 @@ var Main = {
                               " – " +
                               formatTime(s.stop) +
                               " " +
-                              s.location
+                              s.location,
                           ]);
                         })
-                      )
+                      ),
                     ]
                   : []
               )
@@ -260,7 +260,7 @@ var Main = {
                           { onclick: peppMe(pi) },
                           pi.pepp ? "Opeppa!" : "Peppa!"
                         )
-                      )
+                      ),
                     ]
                   : []
               )
@@ -271,28 +271,28 @@ var Main = {
       }
       return [];
     }
-  }
+  },
 };
 
 m.mount(document.config.attachTo, Main);
 m.request({
   method: "GET",
   url: document.config.programApiUrl,
-  deserialize: function(pies) {
-    return pies.map(function(p) {
-      p.schevents = p.schevents.map(function(s) {
+  deserialize: function (pies) {
+    return pies.map(function (p) {
+      p.schevents = p.schevents.map(function (s) {
         return {
           start: new Date(s.start),
           stop: new Date(s.stop),
-          location: s.location
+          location: s.location,
         };
       });
       return p;
     });
-  }
-}).then(r => {
+  },
+}).then((r) => {
   // Group by event type.
-  Program = r.reduce(function(p, v) {
+  Program = r.reduce(function (p, v) {
     if (!p[v.type]) {
       p[v.type] = [];
     }
@@ -302,7 +302,7 @@ m.request({
 });
 m.request({
   method: "GET",
-  url: document.config.eventTypeApiUrl
-}).then(r => {
+  url: document.config.eventTypeApiUrl,
+}).then((r) => {
   EventTypes = r;
 });
