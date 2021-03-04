@@ -26,43 +26,9 @@ try {
   }
 } catch {}
 
-var Program = {};
+var FlatProgram = [];
+var GroupedProgram = {};
 var EventTypes = [];
-
-var orderProgram = function () {
-  var cmpHelper = function (propFun) {
-    return function (a, b) {
-      var p1 = propFun(a);
-      var p2 = propFun(b);
-      if (p1 < p2) {
-        return -1;
-      } else if (p1 > p2) {
-        return 1;
-      } else {
-        return 0;
-      }
-    };
-  };
-  var cmp =
-    state.ordering == "lexical"
-      ? cmpHelper(function (p) {
-          return p.name;
-        })
-      : cmpHelper(function (p) {
-          return p.schevents
-            .map(function (s) {
-              return s.start.getTime();
-            })
-            .reduce(function (acc, v) {
-              return Math.min(acc, v);
-            }, 9007199254740991);
-        });
-  for (var k in Program) {
-    if (Program.hasOwnProperty(k)) {
-      Program[k].sort(cmp);
-    }
-  }
-};
 
 var Main = {
   view: function () {
@@ -88,7 +54,6 @@ var Main = {
         e.preventDefault();
         state.ordering = ordering;
         save();
-        orderProgram(state);
       };
     }
     function typeFun(typeId) {
@@ -120,17 +85,28 @@ var Main = {
       };
     }
     function renderTheProgram() {
-      var et = EventTypes.find(function (e) {
-        return e.pk == state.showType;
-      });
-      return et && et != undefined
-        ? renderProgramItems(et)
-        : [].concat.apply(
-            [],
-            EventTypes.map(function (e) {
-              return renderProgramItems(e);
-            })
-          );
+      // There are two ways to render the program, the flat way or the
+      // grouped way. They are called lexical and time to make it simpler.
+      if (state.ordering == "lexical") {
+        var et = EventTypes.find(function (e) {
+          return e.pk == state.showType;
+        });
+        return et && et != undefined
+          ? renderGroupOfProgramItems(et)
+          : [].concat.apply(
+              [],
+              EventTypes.map(function (e) {
+                return renderGroupOfProgramItems(e);
+              })
+            );
+      } else {
+        return m(
+          "ul",
+          filterProgramItems(FlatProgram).map(function (pi) {
+            return renderOneItem(pi);
+          })
+        );
+      }
     }
 
     return m(
@@ -246,7 +222,7 @@ var Main = {
         ),
       ].concat(renderTheProgram())
     );
-    function renderProgramItems(eventType) {
+    function renderOneItem(pi) {
       var dayNames = [
         "söndag",
         "måndag",
@@ -262,72 +238,79 @@ var Main = {
       function formatTime(d) {
         return zeroPadInt(d.getHours()) + ":" + zeroPadInt(d.getMinutes());
       }
-      var programItems = (Program[eventType.pk] || [])
-        .filter(function (pi) {
-          return (
-            (state.filterByDay != -1
-              ? pi.schevents
-                  .map(function (s) {
-                    return s.start.getDay();
-                  })
-                  .indexOf(state.filterByDay) != -1
-              : true) &&
-            (document.config.loggedIn && state.onlyShowPepp ? pi.pepp : true)
-          );
-        })
-        .map(function (pi) {
-          return m(
-            "li",
-            [
-              m("a.event-link", { href: pi.url }, pi.name),
-              pi.pepp && !state.onlyShowPepp ? " ★" : null,
-            ]
-              .concat(
-                state.showVerbose
-                  ? [
-                      m("p.arr", pi.organizers),
-                      m("p.besk", pi.description),
-                      m("p.vad", [m("span.hjarta", "♥"), pi.whatsinitforme]),
-                      m("p.taggar", pi.tags.join(", ")),
-                    ]
-                  : []
-              )
-              .concat(
-                pi.schevents
-                  ? [
-                      m(
-                        "ul",
-                        pi.schevents.map(function (s) {
-                          return m("li", [
-                            dayNames[s.start.getDay()].substring(0, 3) +
-                              " " +
-                              formatTime(s.start) +
-                              " – " +
-                              formatTime(s.stop) +
-                              " " +
-                              s.location,
-                          ]);
-                        })
-                      ),
-                    ]
-                  : []
-              )
-              .concat(
-                state.showVerbose && document.config.loggedIn
-                  ? [
-                      m(
-                        "p",
-                        m(
-                          "button.pure-button",
-                          { onclick: peppMe(pi) },
-                          pi.pepp ? "Opeppa!" : "Peppa!"
-                        )
-                      ),
-                    ]
-                  : []
-              )
-          );
-        });
+      return m(
+        "li",
+        [
+          m("a.event-link", { href: pi.url }, pi.name),
+          pi.pepp && !state.onlyShowPepp ? " ★" : null,
+        ]
+          .concat(
+            state.showVerbose
+              ? [
+                  m("p.arr", pi.organizers),
+                  m("p.besk", pi.description),
+                  m("p.vad", [m("span.hjarta", "♥"), pi.whatsinitforme]),
+                  m("p.taggar", pi.tags.join(", ")),
+                ]
+              : []
+          )
+          .concat(
+            pi.schevents
+              ? [
+                  m(
+                    "ul",
+                    pi.schevents.map(function (s) {
+                      return m("li", [
+                        dayNames[s.start.getDay()].substring(0, 3) +
+                          " " +
+                          formatTime(s.start) +
+                          " – " +
+                          formatTime(s.stop) +
+                          " " +
+                          s.location,
+                      ]);
+                    })
+                  ),
+                ]
+              : []
+          )
+          .concat(
+            state.showVerbose && document.config.loggedIn
+              ? [
+                  m(
+                    "p",
+                    m(
+                      "button.pure-button",
+                      { onclick: peppMe(pi) },
+                      pi.pepp ? "Opeppa!" : "Peppa!"
+                    )
+                  ),
+                ]
+              : []
+          )
+      );
+    }
+    function filterProgramItems(pis) {
+      return pis.filter(function (pi) {
+        return (
+          (state.filterByDay != -1
+            ? pi.schevents
+                .map(function (s) {
+                  return s.start.getDay();
+                })
+                .indexOf(state.filterByDay) != -1
+            : true) &&
+          (document.config.loggedIn && state.onlyShowPepp ? pi.pepp : true) &&
+          (state.showType > 0 ? state.showType == pi.type : true)
+        );
+      });
+    }
+    function renderGroupOfProgramItems(eventType) {
+      var programItems = filterProgramItems(
+        GroupedProgram[eventType.pk] || []
+      ).map(function (pi) {
+        return renderOneItem(pi);
+      });
       if (programItems.length > 0) {
         return [m("h2.typeheader", eventType.name), m("ul", programItems)];
       }
@@ -356,15 +339,46 @@ m.request({
     });
   },
 }).then((r) => {
+  // Duplicate the events to have one event per scheduled occurence and then
+  // sort them by time.
+  FlatProgram = r.reduce(function (p, v) {
+    return p.concat(
+      v.schevents.map(function (s) {
+        return Object.assign({}, v, { schevents: [s] });
+      })
+    );
+  }, []);
+  var cmpHelper = function (propFun) {
+    return function (a, b) {
+      var p1 = propFun(a);
+      var p2 = propFun(b);
+      if (p1 < p2) {
+        return -1;
+      } else if (p1 > p2) {
+        return 1;
+      } else {
+        return 0;
+      }
+    };
+  };
+  FlatProgram.sort(
+    cmpHelper(function (v) {
+      if (v.schevents.length > 0) {
+        return v.schevents[0].start;
+      } else {
+        return 0;
+      }
+    })
+  );
+
   // Group by event type.
-  Program = r.reduce(function (p, v) {
+  GroupedProgram = r.reduce(function (p, v) {
     if (!p[v.type]) {
       p[v.type] = [];
     }
     p[v.type].push(v);
     return p;
   }, {});
-  orderProgram();
 });
 m.request({
   method: "GET",
