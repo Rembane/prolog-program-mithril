@@ -30,11 +30,12 @@ var FlatProgram = [];
 var GroupedProgram = {};
 var EventTypes = [];
 
+function save() {
+  window.localStorage.setItem("prolog-program", JSON.stringify(state));
+}
+
 var Main = {
   view: function () {
-    function save() {
-      window.localStorage.setItem("prolog-program", JSON.stringify(state));
-    }
     function verboseFun(isVerbose) {
       return function (e) {
         e.preventDefault();
@@ -155,8 +156,8 @@ var Main = {
           m(
             "ul.button-list",
             [
-              { label: "Bokstavsordning", prop: "lexical" },
-              { label: "Tidsordning", prop: "time" },
+              { label: "Bokstavsordning", prop: "lexical", disabled: false },
+              { label: "Tidsordning", prop: "time", disabled: FlatProgram.length == 0 },
             ].map(function (x) {
               return m("li", [
                 m(
@@ -164,6 +165,7 @@ var Main = {
                   {
                     onclick: orderFun(x.prop),
                     class: state.ordering == x.prop ? "active glow" : null,
+                    disabled: x.disabled,
                   },
                   x.label
                 ),
@@ -370,6 +372,11 @@ m.request({
       }
     })
   );
+
+  if(FlatProgram.length == 0) {
+    state.ordering = "lexical";
+    save();
+  }
 
   // Group by event type.
   GroupedProgram = r.reduce(function (p, v) {
